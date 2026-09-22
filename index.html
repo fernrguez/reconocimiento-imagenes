@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>App de Estudio por Imágenes - Rotación Ortogonal</title>
+  <title>App de Estudio por Imágenes</title>
   <style>
     :root {
       --primary: #2563eb;
@@ -56,24 +56,26 @@
 
     select { flex: 1; }
 
+    /* Contenedor cuadrado proporcional */
     .image-container {
       width: 100%;
-      height: 320px;
+      max-width: 360px;
+      aspect-ratio: 1 / 1;
+      margin: 0 auto 20px auto;
       background: #e2e8f0;
-      border-radius: 8px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      margin-bottom: 20px;
-      text-align: center;
-      padding: 20px;
+      position: relative;
+      padding: 10px;
       box-sizing: border-box;
     }
 
     .image-container img {
-      max-width: 75%;
-      max-height: 75%;
+      max-width: 68%;
+      max-height: 68%;
       object-fit: contain;
       transition: transform 0.2s ease-in-out;
     }
@@ -152,14 +154,14 @@
   <div class="controls">
     <label for="categorySelect"><strong>Categoría:</strong></label>
     <select id="categorySelect" onchange="changeCategory()">
-      <!-- Rellenado dinámicamente por JS -->
+      <!-- Rellenado dinámicamente -->
     </select>
   </div>
 
-  <!-- Visor de Imagen -->
+  <!-- Visor de Imagen (Cuadrado 1:1) -->
   <div class="image-container">
     <img id="displayImage" src="" alt="Cargando imagen..." style="display:none;">
-    <span id="imagePlaceholder">Selecciona una categoría para empezar</span>
+    <span id="imagePlaceholder">Cargando catálogo...</span>
   </div>
 
   <!-- Formulario de Respuesta -->
@@ -202,32 +204,9 @@
 </div>
 
 <script>
-  // CONFIGURACIÓN DE CATEGORÍAS E IMÁGENES
-  const DATABASE = {
-    "Peces": [
-      { name: "breca", url: "imagenes/breca.jpg" },
-      { name: "bonito", url: "imagenes/bonito.jpg" },
-      { name: "cabracho", url: "imagenes/cabracho.jpg" },
-      { name: "cuco", url: "imagenes/cuco.jpg" },
-      { name: "lubina", url: "imagenes/lubina.jpg" },
-      { name: "machote", url: "imagenes/machote.jpg" },
-      { name: "mero", url: "imagenes/mero.jpg" },
-      { name: "rape", url: "imagenes/rape.jpg" },
-      { name: "rodaballo", url: "imagenes/rodaballo.jpg" },
-      { name: "san martin", url: "imagenes/san martin.jpg" }
-    ],
-    "Banderas": [
-      { name: "España", url: "imagenes/Banderas/Espana.png" },
-      { name: "Francia", url: "imagenes/Banderas/Francia.png" }
-    ],
-    "Geografía": [
-      { name: "Pirineos", url: "imagenes/Geografia/pirineos.jpg" }
-    ]
-  };
-
   const ALL_CATEGORIES_KEY = "Todas las categorías (General)";
 
-  // Variables de Estado
+  let DATABASE = {};
   let currentCategory = "";
   let availableImages = [];
   let currentItem = null;
@@ -243,10 +222,26 @@
   if (!stats.dailyStats) stats.dailyStats = {};
   if (!stats.itemStats) stats.itemStats = {};
 
-  window.onload = () => {
-    initCategories();
+  // Carga inicial del JSON al abrir la página
+  window.onload = async () => {
+    await loadJSONData();
     updateStatsUI();
   };
+
+  async function loadJSONData() {
+    const placeholder = document.getElementById('imagePlaceholder');
+    try {
+      const response = await fetch('datos.json');
+      if (!response.ok) {
+        throw new Error(`Error HTTP ${response.status}`);
+      }
+      DATABASE = await response.json();
+      initCategories();
+    } catch (error) {
+      console.error("Error al cargar datos.json:", error);
+      placeholder.textContent = "Error al cargar datos.json. Revisa que el archivo exista y esté bien formateado.";
+    }
+  }
 
   function initCategories() {
     const select = document.getElementById('categorySelect');
@@ -278,7 +273,7 @@
         });
       });
     } else {
-      availableImages = DATABASE[currentCategory].map(item => ({
+      availableImages = (DATABASE[currentCategory] || []).map(item => ({
         ...item,
         categoryOrigin: currentCategory
       }));
@@ -287,11 +282,9 @@
     nextQuestion();
   }
 
-  // Función que devuelve una rotación aleatoria en pasos de 90° (0°, 90°, 180°, 270°)
   function getRandomOrthogonalRotation() {
     const angles = [0, 90, 180, 270];
-    const randomIndex = Math.floor(Math.random() * angles.length);
-    return angles[randomIndex];
+    return angles[Math.floor(Math.random() * angles.length)];
   }
 
   function nextQuestion() {
@@ -315,7 +308,7 @@
 
     const imgEl = document.getElementById('displayImage');
     
-    // Asignar ángulo aleatorio de 90° en 90°
+    // Rotación ortogonal aleatoria
     const angle = getRandomOrthogonalRotation();
     imgEl.style.transform = `rotate(${angle}deg)`;
     
@@ -347,7 +340,6 @@
       stats.incorrect++;
     }
 
-    // Registro diario YYYY-MM-DD
     const today = new Date().toISOString().slice(0, 10);
     if (!stats.dailyStats[today]) {
       stats.dailyStats[today] = { correct: 0, incorrect: 0 };
@@ -358,7 +350,6 @@
       stats.dailyStats[today].incorrect++;
     }
 
-    // Registro por ítem
     const itemKey = `${currentItem.categoryOrigin}::${currentItem.name}`;
     if (!stats.itemStats[itemKey]) {
       stats.itemStats[itemKey] = {
@@ -374,7 +365,6 @@
       stats.itemStats[itemKey].incorrect++;
     }
 
-    // Histórico reciente
     stats.history.unshift({
       category: currentItem.categoryOrigin,
       item: currentItem.name,
@@ -395,7 +385,6 @@
     document.getElementById('correctCount').textContent = stats.correct;
     document.getElementById('incorrectCount').textContent = stats.incorrect;
 
-    // Evolución diaria
     const dailyList = document.getElementById('dailyList');
     dailyList.innerHTML = '';
     const sortedDays = Object.keys(stats.dailyStats).sort().reverse();
@@ -413,7 +402,6 @@
       });
     }
 
-    // Ranking de más falladas
     const rankingList = document.getElementById('rankingList');
     rankingList.innerHTML = '';
     const itemsArray = Object.values(stats.itemStats).sort((a, b) => b.incorrect - a.incorrect);
@@ -429,7 +417,6 @@
       });
     }
 
-    // Histórico reciente
     const historyList = document.getElementById('historyList');
     historyList.innerHTML = '';
     
