@@ -15,7 +15,7 @@
     { "name": "España", "url": "imagenes/Banderas/Espana.png" },
     { "name": "Francia", "url": "imagenes/Banderas/Francia.png" }
   ],
-  "Geografía": [
+  "Geografía - borrar": [
     { "name": "Pirineos", "url": "imagenes/Geografia/pirineos.jpg" }
   ]
 }
