@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App de Estudio por Imágenes - Rotación Ortogonal</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --success: #16a34a;
+      --error: #dc2626;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --border: #cbd5e1;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 650px;
+      width: 100%;
+      background: var(--card);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    h1, h2, h3 { text-align: center; margin-top: 0; }
+    h3 { font-size: 1.05rem; margin-top: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: center;
+      background: #f1f5f9;
+      padding: 14px;
+      border-radius: 8px;
+    }
+
+    select, input[type="text"], button {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    select { flex: 1; }
+
+    .image-container {
+      width: 100%;
+      height: 320px;
+      background: #e2e8f0;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: 20px;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .image-container img {
+      max-width: 75%;
+      max-height: 75%;
+      object-fit: contain;
+      transition: transform 0.2s ease-in-out;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .input-group input { flex: 1; }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover { opacity: 0.9; }
+
+    .feedback {
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .feedback.correct { background: #dcfce7; color: var(--success); display: block; }
+    .feedback.incorrect { background: #fee2e2; color: var(--error); display: block; }
+
+    .stats {
+      background: #f1f5f9;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .stats p { margin: 5px 0; }
+
+    .list-container {
+      max-height: 140px;
+      overflow-y: auto;
+      margin-top: 8px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+
+    .list-container ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .list-container li {
+      margin-bottom: 4px;
+    }
+
+    .btn-danger {
+      background-color: #64748b; 
+      margin-top: 15px; 
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Estudio por Identificación</h1>
+
+  <!-- Selector de Categoría -->
+  <div class="controls">
+    <label for="categorySelect"><strong>Categoría:</strong></label>
+    <select id="categorySelect" onchange="changeCategory()">
+      <!-- Rellenado dinámicamente por JS -->
+    </select>
+  </div>
+
+  <!-- Visor de Imagen -->
+  <div class="image-container">
+    <img id="displayImage" src="" alt="Cargando imagen..." style="display:none;">
+    <span id="imagePlaceholder">Selecciona una categoría para empezar</span>
+  </div>
+
+  <!-- Formulario de Respuesta -->
+  <form id="quizForm" onsubmit="checkAnswer(event)">
+    <div class="input-group">
+      <input type="text" id="userInput" placeholder="Escribe el nombre de la imagen..." autocomplete="off" required>
+      <button type="submit">Comprobar</button>
+    </div>
+  </form>
+
+  <!-- Mensaje de Feedback -->
+  <div id="feedback" class="feedback"></div>
+
+  <!-- Panel de Estadísticas y Analíticas -->
+  <div class="stats">
+    <h2>Panel de Analíticas y Progreso</h2>
+    <p>Aciertos sesión: <strong id="correctCount" style="color: var(--success);">0</strong> | Fallos sesión: <strong id="incorrectCount" style="color: var(--error);">0</strong></p>
+    <p>Pendientes en esta selección: <strong id="remainingCount">0</strong></p>
+    
+    <!-- Evolución Diaria -->
+    <h3>📅 Evolución por Días</h3>
+    <div class="list-container">
+      <ul id="dailyList"></ul>
+    </div>
+
+    <!-- Ranking de Más Falladas -->
+    <h3>⚠️ Imágenes Más Falladas (Global)</h3>
+    <div class="list-container">
+      <ul id="rankingList"></ul>
+    </div>
+
+    <!-- Histórico Reciente -->
+    <h3>🕒 Histórico Reciente</h3>
+    <div class="list-container">
+      <ul id="historyList"></ul>
+    </div>
+
+    <button class="btn-danger" onclick="resetHistory()">Reiniciar Todos los Datos e Históricos</button>
+  </div>
+</div>
+
+<script>
+  // CONFIGURACIÓN DE CATEGORÍAS E IMÁGENES
+  const DATABASE = {
+    "Anatomía": [
+      { name: "fémur", url: "imagenes/Anatomia/femur.jpg" },
+      { name: "cráneo", url: "imagenes/Anatomia/craneo.png" }
+    ],
+    "Banderas": [
+      { name: "España", url: "imagenes/Banderas/Espana.png" },
+      { name: "Francia", url: "imagenes/Banderas/Francia.png" }
+    ],
+    "Geografía": [
+      { name: "Pirineos", url: "imagenes/Geografia/pirineos.jpg" }
+    ]
+  };
+
+  const ALL_CATEGORIES_KEY = "Todas las categorías (General)";
+
+  // Variables de Estado
+  let currentCategory = "";
+  let availableImages = [];
+  let currentItem = null;
+
+  let stats = JSON.parse(localStorage.getItem('study_stats')) || { 
+    correct: 0, 
+    incorrect: 0, 
+    history: [],
+    dailyStats: {},
+    itemStats: {}
+  };
+
+  if (!stats.dailyStats) stats.dailyStats = {};
+  if (!stats.itemStats) stats.itemStats = {};
+
+  window.onload = () => {
+    initCategories();
+    updateStatsUI();
+  };
+
+  function initCategories() {
+    const select = document.getElementById('categorySelect');
+    select.innerHTML = '';
+    
+    const allOption = document.createElement('option');
+    allOption.value = ALL_CATEGORIES_KEY;
+    allOption.textContent = `🌐 ${ALL_CATEGORIES_KEY}`;
+    select.appendChild(allOption);
+
+    Object.keys(DATABASE).forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      select.appendChild(option);
+    });
+
+    changeCategory();
+  }
+
+  function changeCategory() {
+    currentCategory = document.getElementById('categorySelect').value;
+
+    if (currentCategory === ALL_CATEGORIES_KEY) {
+      availableImages = [];
+      Object.keys(DATABASE).forEach(cat => {
+        DATABASE[cat].forEach(item => {
+          availableImages.push({ ...item, categoryOrigin: cat });
+        });
+      });
+    } else {
+      availableImages = DATABASE[currentCategory].map(item => ({
+        ...item,
+        categoryOrigin: currentCategory
+      }));
+    }
+
+    nextQuestion();
+  }
+
+  // Función que devuelve una rotación aleatoria en pasos de 90° (0°, 90°, 180°, 270°)
+  function getRandomOrthogonalRotation() {
+    const angles = [0, 90, 180, 270];
+    const randomIndex = Math.floor(Math.random() * angles.length);
+    return angles[randomIndex];
+  }
+
+  function nextQuestion() {
+    const feedback = document.getElementById('feedback');
+    feedback.className = 'feedback';
+    feedback.style.display = 'none';
+    document.getElementById('userInput').value = '';
+
+    if (availableImages.length === 0) {
+      document.getElementById('displayImage').style.display = 'none';
+      document.getElementById('imagePlaceholder').textContent = "¡Has completado todas las imágenes de esta selección!";
+      document.getElementById('imagePlaceholder').style.display = 'block';
+      document.getElementById('remainingCount').textContent = '0';
+      currentItem = null;
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * availableImages.length);
+    currentItem = availableImages[randomIndex];
+    availableImages.splice(randomIndex, 1);
+
+    const imgEl = document.getElementById('displayImage');
+    
+    // Asignar ángulo aleatorio de 90° en 90°
+    const angle = getRandomOrthogonalRotation();
+    imgEl.style.transform = `rotate(${angle}deg)`;
+    
+    imgEl.src = currentItem.url;
+    imgEl.style.display = 'block';
+    document.getElementById('imagePlaceholder').style.display = 'none';
+    
+    document.getElementById('remainingCount').textContent = availableImages.length + 1;
+    document.getElementById('userInput').focus();
+  }
+
+  function checkAnswer(event) {
+    event.preventDefault();
+    if (!currentItem) return;
+
+    const userInput = document.getElementById('userInput').value.trim().toLowerCase();
+    const correctAnswer = currentItem.name.trim().toLowerCase();
+    const feedback = document.getElementById('feedback');
+
+    const isCorrect = userInput === correctAnswer;
+
+    if (isCorrect) {
+      feedback.textContent = `¡Correcto! Es: ${currentItem.name}`;
+      feedback.className = 'feedback correct';
+      stats.correct++;
+    } else {
+      feedback.textContent = `Incorrecto. Era: "${currentItem.name}" (Escribiste: "${userInput || 'nada'}")`;
+      feedback.className = 'feedback incorrect';
+      stats.incorrect++;
+    }
+
+    // Registro diario YYYY-MM-DD
+    const today = new Date().toISOString().slice(0, 10);
+    if (!stats.dailyStats[today]) {
+      stats.dailyStats[today] = { correct: 0, incorrect: 0 };
+    }
+    if (isCorrect) {
+      stats.dailyStats[today].correct++;
+    } else {
+      stats.dailyStats[today].incorrect++;
+    }
+
+    // Registro por ítem
+    const itemKey = `${currentItem.categoryOrigin}::${currentItem.name}`;
+    if (!stats.itemStats[itemKey]) {
+      stats.itemStats[itemKey] = {
+        category: currentItem.categoryOrigin,
+        name: currentItem.name,
+        correct: 0,
+        incorrect: 0
+      };
+    }
+    if (isCorrect) {
+      stats.itemStats[itemKey].correct++;
+    } else {
+      stats.itemStats[itemKey].incorrect++;
+    }
+
+    // Histórico reciente
+    stats.history.unshift({
+      category: currentItem.categoryOrigin,
+      item: currentItem.name,
+      userAnswer: userInput,
+      correct: isCorrect,
+      date: new Date().toLocaleTimeString()
+    });
+
+    saveStats();
+    updateStatsUI();
+
+    setTimeout(() => {
+      nextQuestion();
+    }, 1500);
+  }
+
+  function updateStatsUI() {
+    document.getElementById('correctCount').textContent = stats.correct;
+    document.getElementById('incorrectCount').textContent = stats.incorrect;
+
+    // Evolución diaria
+    const dailyList = document.getElementById('dailyList');
+    dailyList.innerHTML = '';
+    const sortedDays = Object.keys(stats.dailyStats).sort().reverse();
+    
+    if (sortedDays.length === 0) {
+      dailyList.innerHTML = '<li><em>No hay registros todavía.</em></li>';
+    } else {
+      sortedDays.forEach(day => {
+        const dStats = stats.dailyStats[day];
+        const total = dStats.correct + dStats.incorrect;
+        const pct = total > 0 ? Math.round((dStats.correct / total) * 100) : 0;
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${day}</strong>: <span style="color:var(--success)">${dStats.correct} aciertos</span>, <span style="color:var(--error)">${dStats.incorrect} fallos</span> (${pct}% éxito)`;
+        dailyList.appendChild(li);
+      });
+    }
+
+    // Ranking de más falladas
+    const rankingList = document.getElementById('rankingList');
+    rankingList.innerHTML = '';
+    const itemsArray = Object.values(stats.itemStats).sort((a, b) => b.incorrect - a.incorrect);
+    const topFailed = itemsArray.filter(i => i.incorrect > 0).slice(0, 5);
+
+    if (topFailed.length === 0) {
+      rankingList.innerHTML = '<li><em>¡Genial! Aún no hay fallos registrados.</em></li>';
+    } else {
+      topFailed.forEach(item => {
+        const li = document.createElement('li');
+        li.innerHTML = `[${item.category}] <strong>${item.name}</strong>: <span style="color:var(--error)">${item.incorrect} fallos</span> (Aciertos: ${item.correct})`;
+        rankingList.appendChild(li);
+      });
+    }
+
+    // Histórico reciente
+    const historyList = document.getElementById('historyList');
+    historyList.innerHTML = '';
+    
+    if (stats.history.length === 0) {
+      historyList.innerHTML = '<li><em>Sin actividad reciente.</em></li>';
+    } else {
+      stats.history.slice(0, 10).forEach(entry => {
+        const li = document.createElement('li');
+        li.style.color = entry.correct ? 'var(--success)' : 'var(--error)';
+        li.textContent = `[${entry.date}] [${entry.category}] ${entry.item}: ${entry.correct ? 'Acierto' : 'Fallo (Escribiste: "' + entry.userAnswer + '")'}`;
+        historyList.appendChild(li);
+      });
+    }
+  }
+
+  function saveStats() {
+    localStorage.setItem('study_stats', JSON.stringify(stats));
+  }
+
+  function resetHistory() {
+    if (confirm("¿Estás seguro de que quieres borrar todo el histórico, la evolución diaria y las estadísticas acumuladas?")) {
+      stats = { correct: 0, incorrect: 0, history: [], dailyStats: {}, itemStats: {} };
+      saveStats();
+      updateStatsUI();
+    }
+  }
+</script>
+
+</body>
+</html>
