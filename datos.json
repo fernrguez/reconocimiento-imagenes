@@ -1,15 +1,15 @@
 {
   "Peces del cantábrico": [
-      { "name": "breca", "url": "imagenes/breca.jpg" },
-      { "name": "bonito", "url": "imagenes/bonito.jpg" },
-      { "name": "cabracho", "url": "imagenes/cabracho.jpg" },
-      { "name": "cuco", "url": "imagenes/cuco.jpg" },
-      { "name": "lubina", "url": "imagenes/lubina.jpg" },
-      { "name": "machote", "url": "imagenes/machote.jpg" },
-      { "name": "mero", "url": "imagenes/mero.jpg" },
-      { "name": "rape", "url": "imagenes/rape.jpg" },
-      { "name": "rodaballo", "url": "imagenes/rodaballo.jpg" },
-      { "name": "san martin", "url": "imagenes/san-martin.jpg" }
+    { "name": "breca", "url": "imagenes/breca.jpg" },
+    { "name": "bonito", "url": "imagenes/bonito.jpg" },
+    { "name": "cabracho", "url": "imagenes/cabracho.jpg" },
+    { "name": "cuco", "url": "imagenes/cuco.jpg" },
+    { "name": "lubina", "url": "imagenes/lubina.jpg" },
+    { "name": "machote", "url": "imagenes/machote.jpg" },
+    { "name": "mero", "url": "imagenes/mero.jpg" },
+    { "name": "rape", "url": "imagenes/rape.jpg" },
+    { "name": "rodaballo", "url": "imagenes/rodaballo.jpg" },
+    { "name": "san martin", "url": "imagenes/san-martin.jpg" }
   ],
   "Banderas": [
     { "name": "España", "url": "imagenes/Banderas/Espana.png" },
