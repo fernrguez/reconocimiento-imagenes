@@ -87,7 +87,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(15, 23, 42, 0.88); /* Fondo oscuro semitransparente */
+      background-color: rgba(15, 23, 42, 0.88);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -223,6 +223,15 @@
       margin-top: 15px; 
       width: 100%;
     }
+
+    .version-footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -288,13 +297,18 @@
 
     <button class="btn-danger" onclick="resetHistory()">Reiniciar Todos los Datos e Históricos</button>
   </div>
+
+  <!-- Indicador de Versión y Modificación -->
+  <div class="version-footer">
+    Última actualización de la versión: <strong>20/10/2026 20:30:00</strong>
+  </div>
 </div>
 
 <script>
   // =========================================================================
   // CONFIGURACIÓN GLOBAL
   // =========================================================================
-  const FEEDBACK_MODAL_TIMEOUT_MS = 5000; // Duración del modal en ms
+  const FEEDBACK_MODAL_TIMEOUT_MS = 5000;
   const ALL_CATEGORIES_KEY = "Todas las categorías (General)";
 
   let DATABASE = {};
@@ -399,7 +413,6 @@
 
     const imgEl = document.getElementById('displayImage');
     
-    // Aplicar ángulo de rotación ortogonal al azar
     const angle = getRandomOrthogonalRotation();
     imgEl.style.transform = `rotate(${angle}deg)`;
     
@@ -411,19 +424,17 @@
     document.getElementById('userInput').focus();
   }
 
-  // Normalizador de texto para comparación flexible
   function normalizeText(text) {
     return text
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
-      .replace(/[^a-z0-9\s]/g, " ")     // Quitar caracteres especiales
-      .replace(/\b(de|del|la|el|los|las|o|a|en|por|para)\b/g, " ") // Quitar conectores comunes
-      .replace(/\s+/g, " ")             // Espacios múltiples a uno solo
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\b(de|del|la|el|los|las|o|a|en|por|para)\b/g, " ")
+      .replace(/\s+/g, " ")
       .trim();
   }
 
-  // Distancia Levenshtein para flexibilidad ortográfica
   function levenshteinDistance(a, b) {
     const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
     for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
@@ -449,12 +460,10 @@
     if (!normUser) return false;
     if (normUser === normTarget) return true;
 
-    // Si una de las palabras principales está incluida completamente
     if (normTarget.includes(normUser) || normUser.includes(normTarget)) {
       return true;
     }
 
-    // Permitir pequeña tolerancia de caracteres por Levenshtein
     const maxDistance = normTarget.length > 6 ? 2 : 1;
     return levenshteinDistance(normUser, normTarget) <= maxDistance;
   }
@@ -471,7 +480,6 @@
     isViewingHistoryModal = false;
     showFeedbackModal(isCorrect, currentItem.name, userInput);
 
-    // Actualización de estadísticas
     if (isCorrect) {
       stats.correct++;
     } else {
@@ -514,7 +522,6 @@
     saveStats();
     updateStatsUI();
 
-    // Siguiente pregunta después del tiempo configurado
     if (modalTimer) clearTimeout(modalTimer);
     modalTimer = setTimeout(() => {
       nextQuestion();
@@ -549,7 +556,6 @@
       modalTimer = null;
     }
 
-    // Pasar a la siguiente pregunta si el usuario cerró el modal de un intento activo
     if (userClicked && !isViewingHistoryModal && currentItem) {
       nextQuestion();
     }
