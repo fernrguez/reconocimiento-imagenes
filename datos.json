@@ -319,4 +319,78 @@
       "url": "imagenes/TOURNEDO DE RECENTAL.png"
     }
   ],
-  "Casquería y Des
+  "Casquería y Despojos": [
+    {
+      "name": "bazo",
+      "url": "imagenes/BAZO..png"
+    },
+    {
+      "name": "carrilleras",
+      "url": "imagenes/CARRILLERAS.png"
+    },
+    {
+      "name": "corazon",
+      "url": "imagenes/CORAZÓN.png"
+    },
+    {
+      "name": "criadillas",
+      "url": "imagenes/CRIADILLAS.png"
+    },
+    {
+      "name": "entresijos",
+      "url": "imagenes/ENTRESIJOS.png"
+    },
+    {
+      "name": "estomagos",
+      "url": "imagenes/ESTÓMAGOS.png"
+    },
+    {
+      "name": "gallinejas de cordero",
+      "url": "imagenes/GALLINEJAS DE CORDERO.png"
+    },
+    {
+      "name": "mollejas de cerdo",
+      "url": "imagenes/MOLLEJAS DE CERDO.png"
+    },
+    {
+      "name": "mollejas de cordero",
+      "url": "imagenes/MOLLEJAS DE CORDERO.png"
+    },
+    {
+      "name": "mollejas",
+      "url": "imagenes/MOLLEJAS.png"
+    },
+    {
+      "name": "pulmon",
+      "url": "imagenes/PULMÓN.png"
+    },
+    {
+      "name": "rabo",
+      "url": "imagenes/RABO.png"
+    },
+    {
+      "name": "redaño o crepineta",
+      "url": "imagenes/REDAÑO O CREPINETA.png"
+    },
+    {
+      "name": "tuetano",
+      "url": "imagenes/TUETANO.png"
+    }
+  ],
+  "Banderas": [
+    {
+      "name": "España",
+      "url": "imagenes/Espana.png"
+    },
+    {
+      "name": "Francia",
+      "url": "imagenes/Francia.png"
+    }
+  ],
+  "Geografía": [
+    {
+      "name": "Pirineos",
+      "url": "imagenes/pirineos.jpg"
+    }
+  ]
+}
