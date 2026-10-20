@@ -69,13 +69,13 @@
       justify-content: center;
       overflow: hidden;
       position: relative;
-      padding: 10px;
+      padding: 0;
       box-sizing: border-box;
     }
 
     .image-container img {
-      max-width: 68%;
-      max-height: 68%;
+      width: 100%;
+      height: 100%;
       object-fit: contain;
       transition: transform 0.2s ease-in-out;
     }
@@ -178,6 +178,10 @@
 
     button:hover { opacity: 0.9; }
 
+    .btn-secondary {
+      background-color: #64748b;
+    }
+
     .stats {
       background: #f1f5f9;
       padding: 15px;
@@ -206,6 +210,14 @@
       margin-bottom: 4px;
     }
 
+    .view-fail-link {
+      color: var(--error);
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: 600;
+      margin-left: 5px;
+    }
+
     .btn-danger {
       background-color: #64748b; 
       margin-top: 15px; 
@@ -231,7 +243,7 @@
     <img id="displayImage" src="" alt="Cargando imagen..." style="display:none;">
     <span id="imagePlaceholder">Cargando catálogo...</span>
 
-    <!-- Modal Modal superpuesto sobre la imagen -->
+    <!-- Modal superpuesto sobre la imagen -->
     <div id="imageModal" class="image-modal">
       <div id="modalContent" class="modal-content">
         <button class="modal-close-btn" onclick="closeModal()">✕</button>
@@ -246,6 +258,7 @@
     <div class="input-group">
       <input type="text" id="userInput" placeholder="Escribe el nombre de la imagen..." autocomplete="off" required>
       <button type="submit">Comprobar</button>
+      <button type="button" class="btn-secondary" onclick="nextQuestion()">Siguiente</button>
     </div>
   </form>
 
@@ -281,7 +294,7 @@
   // =========================================================================
   // CONFIGURACIÓN GLOBAL
   // =========================================================================
-  const FEEDBACK_MODAL_TIMEOUT_MS = 5000; // Duración del modal en ms (5000ms = 5 segundos)
+  const FEEDBACK_MODAL_TIMEOUT_MS = 5000; // Duración del modal en ms
   const ALL_CATEGORIES_KEY = "Todas las categorías (General)";
 
   let DATABASE = {};
@@ -289,6 +302,7 @@
   let availableImages = [];
   let currentItem = null;
   let modalTimer = null;
+  let isViewingHistoryModal = false;
 
   let stats = JSON.parse(localStorage.getItem('study_stats')) || { 
     correct: 0, 
@@ -367,7 +381,7 @@
   }
 
   function nextQuestion() {
-    closeModal();
+    closeModal(false);
     document.getElementById('userInput').value = '';
 
     if (availableImages.length === 0) {
@@ -397,16 +411,64 @@
     document.getElementById('userInput').focus();
   }
 
+  // Normalizador de texto para comparación flexible
+  function normalizeText(text) {
+    return text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+      .replace(/[^a-z0-9\s]/g, " ")     // Quitar caracteres especiales
+      .replace(/\b(de|del|la|el|los|las|o|a|en|por|para)\b/g, " ") // Quitar conectores comunes
+      .replace(/\s+/g, " ")             // Espacios múltiples a uno solo
+      .trim();
+  }
+
+  // Distancia Levenshtein para flexibilidad ortográfica
+  function levenshteinDistance(a, b) {
+    const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+    for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+    for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost
+        );
+      }
+    }
+    return matrix[a.length][b.length];
+  }
+
+  function isAnswerSimilar(user, target) {
+    const normUser = normalizeText(user);
+    const normTarget = normalizeText(target);
+
+    if (!normUser) return false;
+    if (normUser === normTarget) return true;
+
+    // Si una de las palabras principales está incluida completamente
+    if (normTarget.includes(normUser) || normUser.includes(normTarget)) {
+      return true;
+    }
+
+    // Permitir pequeña tolerancia de caracteres por Levenshtein
+    const maxDistance = normTarget.length > 6 ? 2 : 1;
+    return levenshteinDistance(normUser, normTarget) <= maxDistance;
+  }
+
   function checkAnswer(event) {
     event.preventDefault();
     if (!currentItem) return;
 
-    const userInput = document.getElementById('userInput').value.trim().toLowerCase();
-    const correctAnswer = currentItem.name.trim().toLowerCase();
+    const userInput = document.getElementById('userInput').value.trim();
+    const correctAnswer = currentItem.name.trim();
 
-    const isCorrect = userInput === correctAnswer;
+    const isCorrect = isAnswerSimilar(userInput, correctAnswer);
 
-    // Mostrar el modal sobre la imagen
+    isViewingHistoryModal = false;
     showFeedbackModal(isCorrect, currentItem.name, userInput);
 
     // Actualización de estadísticas
@@ -452,7 +514,7 @@
     saveStats();
     updateStatsUI();
 
-    // Siguiente pregunta después del tiempo configurado en FEEDBACK_MODAL_TIMEOUT_MS
+    // Siguiente pregunta después del tiempo configurado
     if (modalTimer) clearTimeout(modalTimer);
     modalTimer = setTimeout(() => {
       nextQuestion();
@@ -478,13 +540,27 @@
     modal.classList.add('active');
   }
 
-  function closeModal() {
+  function closeModal(userClicked = true) {
     const modal = document.getElementById('imageModal');
     modal.classList.remove('active');
+
     if (modalTimer) {
       clearTimeout(modalTimer);
       modalTimer = null;
     }
+
+    // Pasar a la siguiente pregunta si el usuario cerró el modal de un intento activo
+    if (userClicked && !isViewingHistoryModal && currentItem) {
+      nextQuestion();
+    }
+  }
+
+  function openHistoryModal(index) {
+    const entry = stats.history[index];
+    if (!entry) return;
+
+    isViewingHistoryModal = true;
+    showFeedbackModal(entry.correct, entry.item, entry.userAnswer);
   }
 
   function updateStatsUI() {
@@ -529,10 +605,16 @@
     if (stats.history.length === 0) {
       historyList.innerHTML = '<li><em>Sin actividad reciente.</em></li>';
     } else {
-      stats.history.slice(0, 10).forEach(entry => {
+      stats.history.slice(0, 10).forEach((entry, idx) => {
         const li = document.createElement('li');
         li.style.color = entry.correct ? 'var(--success)' : 'var(--error)';
-        li.textContent = `[${entry.date}] [${entry.category}] ${entry.item}: ${entry.correct ? 'Acierto' : 'Fallo (Escribiste: "' + entry.userAnswer + '")'}`;
+
+        if (!entry.correct) {
+          li.innerHTML = `[${entry.date}] [${entry.category}] ${entry.item}: Fallo (Escribiste: "${entry.userAnswer}") <span class="view-fail-link" onclick="openHistoryModal(${idx})">🔍 Ver fallo</span>`;
+        } else {
+          li.textContent = `[${entry.date}] [${entry.category}] ${entry.item}: Acierto`;
+        }
+        
         historyList.appendChild(li);
       });
     }
