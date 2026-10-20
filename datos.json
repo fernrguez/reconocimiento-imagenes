@@ -376,21 +376,5 @@
       "name": "tuetano",
       "url": "imagenes/TUETANO.png"
     }
-  ],
-  "Banderas": [
-    {
-      "name": "España",
-      "url": "imagenes/Espana.png"
-    },
-    {
-      "name": "Francia",
-      "url": "imagenes/Francia.png"
-    }
-  ],
-  "Geografía": [
-    {
-      "name": "Pirineos",
-      "url": "imagenes/pirineos.jpg"
-    }
   ]
 }
