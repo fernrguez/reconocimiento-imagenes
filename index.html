@@ -80,7 +80,7 @@
       transition: transform 0.2s ease-in-out;
     }
 
-    /* Modal superpuesto sobre la imagen */
+    /* Modal superpuesto sobre la imagen para feedback rápido */
     .image-modal {
       position: absolute;
       top: 0;
@@ -145,19 +145,71 @@
       color: #0f172a;
     }
 
-    /* Estilos de respuesta correcta/incorrecta en el modal */
-    .modal-content.correct {
-      border: 3px solid var(--success);
-    }
-    .modal-content.correct .modal-title {
-      color: var(--success);
+    .modal-content.correct { border: 3px solid var(--success); }
+    .modal-content.correct .modal-title { color: var(--success); }
+
+    .modal-content.incorrect { border: 3px solid var(--error); }
+    .modal-content.incorrect .modal-title { color: var(--error); }
+
+    /* Modal Global de Revisión de Fallo (Pop-up Flotante) */
+    .global-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
     }
 
-    .modal-content.incorrect {
+    .global-modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .global-modal-card {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 16px;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+      position: relative;
+      text-align: center;
+      transform: scale(0.9);
+      transition: transform 0.25s ease;
+      box-sizing: border-box;
       border: 3px solid var(--error);
     }
-    .modal-content.incorrect .modal-title {
-      color: var(--error);
+
+    .global-modal-overlay.active .global-modal-card {
+      transform: scale(1);
+    }
+
+    .fail-img-container {
+      width: 100%;
+      max-width: 280px;
+      aspect-ratio: 1 / 1;
+      margin: 15px auto;
+      background: #f1f5f9;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fail-img-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
     .input-group {
@@ -252,7 +304,7 @@
     <img id="displayImage" src="" alt="Cargando imagen..." style="display:none;">
     <span id="imagePlaceholder">Cargando catálogo...</span>
 
-    <!-- Modal superpuesto sobre la imagen -->
+    <!-- Modal feedback superpuesto sobre la imagen -->
     <div id="imageModal" class="image-modal">
       <div id="modalContent" class="modal-content">
         <button class="modal-close-btn" onclick="closeModal()">✕</button>
@@ -300,7 +352,19 @@
 
   <!-- Indicador de Versión y Modificación -->
   <div class="version-footer">
-    Última actualización de la versión: <strong>20/10/2026 20:30:00</strong>
+    Última actualización de la versión: <strong>20/10/2026 20:35:00</strong>
+  </div>
+</div>
+
+<!-- Modal Flotante Global para Ver Fallo -->
+<div id="failModalOverlay" class="global-modal-overlay" onclick="closeFailModal(event)">
+  <div class="global-modal-card" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeFailModal()">✕</button>
+    <div class="modal-title" style="color: var(--error);">Revisión de Fallo</div>
+    <div class="fail-img-container">
+      <img id="failModalImg" src="" alt="Imagen del fallo">
+    </div>
+    <div class="modal-body" id="failModalBody"></div>
   </div>
 </div>
 
@@ -316,7 +380,6 @@
   let availableImages = [];
   let currentItem = null;
   let modalTimer = null;
-  let isViewingHistoryModal = false;
 
   let stats = JSON.parse(localStorage.getItem('study_stats')) || { 
     correct: 0, 
@@ -329,7 +392,11 @@
   if (!stats.dailyStats) stats.dailyStats = {};
   if (!stats.itemStats) stats.itemStats = {};
 
-  // Carga inicial del JSON
+  // Escuchar tecla Escape para cerrar modal de fallo
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeFailModal();
+  });
+
   window.onload = async () => {
     await loadJSONData();
     updateStatsUI();
@@ -477,7 +544,6 @@
 
     const isCorrect = isAnswerSimilar(userInput, correctAnswer);
 
-    isViewingHistoryModal = false;
     showFeedbackModal(isCorrect, currentItem.name, userInput);
 
     if (isCorrect) {
@@ -514,6 +580,7 @@
     stats.history.unshift({
       category: currentItem.categoryOrigin,
       item: currentItem.name,
+      url: currentItem.url,
       userAnswer: userInput,
       correct: isCorrect,
       date: new Date().toLocaleTimeString()
@@ -556,17 +623,38 @@
       modalTimer = null;
     }
 
-    if (userClicked && !isViewingHistoryModal && currentItem) {
+    if (userClicked && currentItem) {
       nextQuestion();
     }
   }
 
-  function openHistoryModal(index) {
+  // Abrir Modal de Fallo con la imagen correspondiente
+  function openFailModal(index) {
     const entry = stats.history[index];
     if (!entry) return;
 
-    isViewingHistoryModal = true;
-    showFeedbackModal(entry.correct, entry.item, entry.userAnswer);
+    const overlay = document.getElementById('failModalOverlay');
+    const imgEl = document.getElementById('failModalImg');
+    const bodyEl = document.getElementById('failModalBody');
+
+    // Buscar URL de la imagen si proviene de un histórico previo
+    let imageUrl = entry.url;
+    if (!imageUrl && DATABASE[entry.category]) {
+      const match = DATABASE[entry.category].find(i => i.name.toLowerCase() === entry.item.toLowerCase());
+      if (match) imageUrl = match.url;
+    }
+
+    imgEl.src = imageUrl || '';
+    bodyEl.innerHTML = `Nombre correcto: <strong>${entry.item}</strong><br><small style="color:#64748b;">(Escribiste: "${entry.userAnswer || 'nada'}")</small><br><span style="font-size:0.8rem; color:#94a3b8;">Categoría: ${entry.category}</span>`;
+
+    overlay.classList.add('active');
+  }
+
+  function closeFailModal(event) {
+    if (event && event.target !== document.getElementById('failModalOverlay') && !event.target.classList.contains('modal-close-btn')) {
+      return;
+    }
+    document.getElementById('failModalOverlay').classList.remove('active');
   }
 
   function updateStatsUI() {
@@ -616,7 +704,7 @@
         li.style.color = entry.correct ? 'var(--success)' : 'var(--error)';
 
         if (!entry.correct) {
-          li.innerHTML = `[${entry.date}] [${entry.category}] ${entry.item}: Fallo (Escribiste: "${entry.userAnswer}") <span class="view-fail-link" onclick="openHistoryModal(${idx})">🔍 Ver fallo</span>`;
+          li.innerHTML = `[${entry.date}] [${entry.category}] ${entry.item}: Fallo (Escribiste: "${entry.userAnswer}") <span class="view-fail-link" onclick="openFailModal(${idx})">🔍 Ver fallo</span>`;
         } else {
           li.textContent = `[${entry.date}] [${entry.category}] ${entry.item}: Acierto`;
         }
